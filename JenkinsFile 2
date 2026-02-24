@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'MyDotNetApp'
+        BUILD_CONFIG = 'Release'
+    }
+
+    stages {
+        stage('Preparation') {
+            steps {
+                echo "Initializing Build for ${env.APP_NAME}..."
+                cleanWs()
+            }
+        }
+
+        stage('Build & Analysis') {
+            parallel {
+                stage('Compile') {
+                    steps {
+                        echo "Running: dotnet build --configuration ${env.BUILD_CONFIG}"
+                    }
+                }
+                stage('Static Analysis') {
+                    steps {
+                        echo "Running Security Scans..."
+                        sleep 2 
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            parallel {
+                stage('Unit Tests') {
+                    steps {
+                        echo "Running NUnit/XUnit tests..."
+                    }
+                }
+                stage('Integration Tests') {
+                    steps {
+                        echo "Running Selenium tests with Chrome..."
+                        // Fixed the 'now()' error by using a standard string
+                        writeFile file: 'test-results.log', text: "Tests passed at: ${new Date().toString()}"
+                    }
+                }
+            }
+        }
+
+        stage('Staging') {
+            steps {
+                echo "Deploying to Staging Server..."
+                archiveArtifacts artifacts: 'test-results.log'
+            }
+        }
+
+        stage('Promote to Production') {
+            when {
+                branch 'master'
+            }
+            steps {
+                input message: "Promote to Production?", ok: "Promote"
+                echo "Deploying to Production IIS..."
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished."
+        }
+        success {
+            echo "Build Succeeded!"
+        }
+        failure {
+            echo "Build Failed! Check the logs."
+        }
+    }
+}
