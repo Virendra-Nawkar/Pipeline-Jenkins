@@ -55,6 +55,12 @@ pipeline {
       }
     }
 
+    stage('Final Stage') {
+      steps {
+        echo 'DOne with Deploy'
+      }
+    }
+
   }
   environment {
     ChromeDriverPath = 'C:\\Driver\\Path\\ChromeDriver.exe'
